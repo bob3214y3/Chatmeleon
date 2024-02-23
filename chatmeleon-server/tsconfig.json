@@ -1,0 +1,17 @@
+{
+  "compilerOptions": {
+    "target": "es6",
+    "module": "commonjs",
+    "esModuleInterop": true, //This is required since some of the dependencies are CommonJS packages.
+    "moduleResolution": "node", // required,
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "strict": true,
+    "paths": {
+      "@chatmeleon-app/*": ["../chatmeleon-app/*"]
+    }
+  },
+  "ts-node": {
+    "files": true
+  }
+}

@@ -1,0 +1,441 @@
+openapi: 3.0.3
+info:
+  title: Chatmeleon
+  description: |-
+
+    Welcome to our Swagger documentation with API. This is a Chatmeleon Server based on the OpenAPI 3.0 specification. 
+
+    Useful link:
+    - [Chatmeleon repository](https://github.com/Quy-Du-Sai-Gon/Chatmeleon-App)
+  termsOfService: http://swagger.io/terms/
+  contact:
+    email: apiteam@swagger.io
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  version: 1.0.11
+externalDocs:
+  description: Find out more about Swagger
+  url: http://swagger.io
+servers:
+  - url: http://localhost:5000
+tags:
+  - name: conversations
+  - name: messages
+paths:
+  /conversations:
+    get:
+      description: Retrieve a page of conversations associated with the current logged in user, with the support of cursor-based pagination. The page will be an array containing the newest conversation to the oldest conversation from the cursor. For example [convo1, convo2, convo3, convo4, convo5] with convo1 being the most recently active conversation and convo5 being the oldest active conversation.
+      tags:
+        - conversations
+      summary: Get current user's conversations
+      parameters:
+        - name: pageSize
+          in: query
+          description: The number of conversation in one page. When this query is empty, a default value of 10 will be used. A positive pageSize will return pageSize number of conversation that is older than the cursor, for example [cursor = convo2.id; pageSize = 2] will return [convo3, convo4]. A negative pageSize will do the opposite, [cursor = convo4.id; pageSize = -2] will return [convo2, convo3].
+          schema:
+            type: integer
+            default: 10
+        - name: cursor
+          in: query
+          description: The ID of the conversation, adjacent to which a page of other conversations will be retrieved. This can be used in pagination to get the next conversation page, using the id of the last item of a previously retrieved page. When this query is empty, a default value of null will be used. When the cursor is null, a positive pageSize will return the most recently active pageSize number of conversation. A negative pageSize will do the opposite, returning the oldest pageSize number of conversation. For example, [cursor = null; pageSize = 2] will return [convo1, convo2], [cursor = null; pageSize = -3] will return [convo3, convo4, convo5].
+          schema:
+            type: string
+            pattern: "^[0-9a-f]{24}$"
+            default: null
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: An array of conversations related to the user.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: string
+                    lastMessageId:
+                      type: string
+                    name:
+                      type: string
+                    groupAvatar:
+                      type: string
+                    isGroup:
+                      type: boolean
+        "401":
+          description: Unauthorized - JWT token is missing or invalid.
+        "403":
+          description: Unauthorized - User is unauthorized.
+    post:
+      description: Create the first non-group conversation with the first message
+      tags:
+        - conversations
+      summary: Create the first non-group conversation
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: A conversations ID with the first message ID related to the user.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  conversationId:
+                    type: string
+                    pattern: "^[0-9a-f]{24}$"
+                  messageId:
+                    type: string
+                    pattern: "^[0-9a-f]{24}$"
+                  createdAt:
+                    type: string
+                    format: date-time
+        "401":
+          description: Unauthorized - JWT token is missing or invalid.
+        "403":
+          description: Unauthorized - User is unauthorized.
+      requestBody:
+        description: Message data to create.
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                relatedUserId:
+                  type: string
+                  pattern: "^[0-9a-f]{24}$"
+                body:
+                  type: string
+                image:
+                  type: string
+  /conversations/{conversationId}:
+    get:
+      description: Retrieve a conversation infomation by its ID.
+      tags:
+        - conversations
+      summary: Get a conversation
+      parameters:
+        - name: conversationId
+          in: path
+          description: The unique conversation ID.
+          required: true
+          schema:
+            type: string
+            pattern: "^[0-9a-f]{24}$"
+          example: "fdf919880bcde1e42cb3e588"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: A conversation record.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  createdAt:
+                    type: string
+                    format: date-time
+                  name:
+                    type: string
+                  lastActive:
+                    type: string
+                    format: date-time
+                  lastMessageId:
+                    type: string
+                    pattern: "^[0-9a-f]{24}$"
+                  isGroup:
+                    type: boolean
+                  groupAvatar:
+                    type: string
+                  nicknames:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Nickname"
+                  userIds:
+                    type: array
+                    items:
+                      type: string
+                      pattern: "^[0-9a-f]{24}$"
+        "401":
+          description: Unauthorized - JWT token is missing or invalid.
+        "403":
+          description: Unauthorized - User is unauthorized.
+
+  /conversations/{conversationId}/messages:
+    get:
+      description: Retrieve a page of messages of a conversation identified by the conversation's ID with the support of cursor-based pagination. The page will be an array containing the newest messages to the oldest messgaes from the cursor. For example [mess1, mess2, mess3, mess4, mess5] with mess1 being the most recently sent message and mess5 being the oldest message.
+      tags:
+        - messages
+      summary: Get all messages in a conversation
+      parameters:
+        - name: conversationId
+          in: path
+          description: The unique conversation ID.
+          required: true
+          schema:
+            type: string
+            pattern: "^[0-9a-f]{24}$"
+          example: "fdf919880bcde1e42cb3e588"
+        - name: pageSize
+          in: query
+          description: The number of messages in one page. When this query is empty, a default value of 10 will be used. A positive pageSize will return a pageSize number of message that is older than the cursor, for example [cursor = mess2.id; pageSize = 2] will return [mess3, mess4]. A negative pageSize will do the opposite, [cursor = mess4.id; pageSize = -2] will return [mess2, mess3].
+          schema:
+            type: integer
+            default: 10
+        - name: cursor
+          in: query
+          description: The ID of the message, adjacent to which a page of other messages will be retrieved. This can be used in pagination to get the next message page, using the id of the last item of a previously retrieved page. When this query is empty, a default value of null will be used. When the cursor is null, a positive pageSize will return the most recently sent pageSize number of messages. A negative pageSize will do the opposite, returning the oldest pageSize number of conversation. For example, [cursor = null; pageSize = 2] will return [mess1, mess2], [cursor = null; pageSize = -3] will return [mess3, mess4, mess5].
+          schema:
+            type: string
+            pattern: "^[0-9a-f]{24}$"
+            default: null
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: All messages's information.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: string
+                      pattern: "^[0-9a-f]{24}$"
+                    body:
+                      type: string
+                    image:
+                      type: string
+                    createdAt:
+                      type: string
+                      format: date-time
+                    seenIds:
+                      type: array
+                      items:
+                        type: string
+                        pattern: "^[0-9a-f]{24}$"
+                    senderId:
+                      type: string
+                      pattern: "^[0-9a-f]{24}$"
+        "401":
+          description: Unauthorized - JWT token is missing or invalid.
+        "403":
+          description: Unauthorized - User is unauthorized.
+    post:
+      description: Create a new message.
+      tags:
+        - messages
+      summary: Create a message
+      parameters:
+        - name: conversationId
+          in: path
+          description: The unique conversation ID.
+          required: true
+          schema:
+            type: string
+            pattern: "^[0-9a-f]{24}$"
+          example: "fdf919880bcde1e42cb3e588"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Message created successfully.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  messageId:
+                    type: string
+                    pattern: "^[0-9a-f]{24}$"
+                  createdAt:
+                    type: string
+                    format: date-time
+        "401":
+          description: Unauthorized - JWT token is missing or invalid.
+        "403":
+          description: Unauthorized - User is unauthorized.
+
+      requestBody:
+        description: Message data to create.
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                body:
+                  type: string
+                image:
+                  type: string
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Bearer token for authentication. Use the format "Bearer YOUR_JWT_TOKEN". The JWT token is signed with HS256 using a secret key.
+  schemas:
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          pattern: "^[0-9a-f]{24}$"
+          description: MongoDB _id of the user.
+        name:
+          type: string
+          description: The user's name, e.g., "Jackie Chan."
+        email:
+          type: string
+          format: email
+          description: The email address associated with the user's account. It should be a valid email address, e.g., "user@example.com."
+        emailVerified:
+          type: string
+          format: date-time
+          description: The timestamp when the email address was verified.
+        image:
+          type: string
+          description: URL to the user's profile image.
+        hashedPassword:
+          type: string
+          description: Hashed password for user authentication.
+        createdAt:
+          type: string
+          format: date-time
+          description: The timestamp when the user account was created.
+        updatedAt:
+          type: string
+          format: date-time
+          description: The timestamp when the user account was last updated.
+        conversationsIds:
+          type: array
+          items:
+            type: string
+            format: uuid
+            description: List of conversation IDs the user is part of
+        seenMessageIds:
+          type: array
+          items:
+            type: string
+            format: uuid
+            description: List of message IDs the user has seen
+
+    Message:
+      type: object
+      properties:
+        id:
+          type: string
+          pattern: "^[0-9a-f]{24}$"
+          description: MongoDB _id of the message.
+        body:
+          type: string
+          example: "This is a message."
+          description: The content of the message.
+        image:
+          type: string
+          example: "https://fastly.picsum.photos/id/237/200/300.jpg?hmac=TmmQSbShHz9CdQm0NkEjx1Dyh_Y984R9LpNrpvH2D_U"
+          description: URL to an image associated with the message.
+        createdAt:
+          type: string
+          format: date-time
+          description: The timestamp when the message was created.
+        seenIds:
+          type: array
+          items:
+            type: string
+            pattern: "^[0-9a-f]{24}$"
+            description: An array of user IDs that has seen the message
+        conversationId:
+          type: string
+          pattern: "^[0-9a-f]{24}$"
+          description: MongoDB _id of the associated conversation.
+        senderId:
+          type: string
+          pattern: "^[0-9a-f]{24}$"
+
+    Conversation:
+      type: object
+      properties:
+        id:
+          type: string
+          pattern: "^[0-9a-f]{24}$"
+          description: MongoDB _id of the conversation.
+        createdAt:
+          type: string
+          format: date-time
+          description: Date and time when the conversation was created
+        name:
+          type: string
+          description: Optional name for the conversation
+        lastActive:
+          type: string
+          format: date-time
+          description: Date and time of the last activity in the conversation
+        lastMessageId:
+          type: string
+          format: uuid
+          description: References the latest message in the conversation
+        isGroup:
+          type: boolean
+          description: Indicates whether the conversation is a group chat
+        groupAvatar:
+          type: string
+          description: Optional avatar for group conversations
+        nicknames:
+          type: array
+          items:
+            $ref: "#/components/schemas/Nickname"
+          description: Nicknames for users within the conversation
+        userIds:
+          type: array
+          items:
+            type: string
+            format: uuid
+            description: List of user IDs belong to the conversation
+
+    # User_Relationship model
+    User_Relationship:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique identifier for each relationship
+        type:
+          type: string
+          enum:
+            - FRIEND
+            - BLOCK
+            - FOLLOWING
+            - PENDING_FRIEND_REQUEST
+            - SENDING_FRIEND_REQUEST
+          description: Type of relation based on the Relationship enum
+        createdAt:
+          type: string
+          format: date-time
+          description: Date and time when the relationship was created
+        relatingUserId:
+          type: string
+          format: uuid
+          description: The ID of the user in the relationship
+        relatedUserId:
+          type: string
+          format: uuid
+          description: The ID of the other user in the relationship
+    Nickname:
+      type: object
+      properties:
+        userId:
+          type: string
+          pattern: "^[0-9a-f]{24}$"
+          description: MongoDB _id of the user
+        nickname:
+          type: string
+          description: Optional nickname for a user
