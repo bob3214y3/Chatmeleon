@@ -4,9 +4,7 @@ info:
   description: |-
 
     Welcome to our Swagger documentation with API. This is a Chatmeleon Server based on the OpenAPI 3.0 specification. 
-
-    Useful link:
-    - [Chatmeleon repository](https://github.com/Quy-Du-Sai-Gon/Chatmeleon-App)
+    
   termsOfService: http://swagger.io/terms/
   contact:
     email: apiteam@swagger.io
